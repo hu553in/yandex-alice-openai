@@ -1,0 +1,14 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.2
+    hooks:
+      - id: ruff-check
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.2
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - pydantic>=2.12.3,<3.0.0
+          - fastapi>=0.121.0,<0.122.0
+          - sqlalchemy[asyncio]>=2.0.44,<2.1.0

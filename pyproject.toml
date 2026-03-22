@@ -1,0 +1,102 @@
+[project]
+name = "alice-openai-backend"
+version = "0.1.0"
+description = "Production-grade Alice skill backend with OpenAI Responses API, Redis memory, and deferred replies."
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Codex Starter Kit" }]
+keywords = ["alice", "yandex", "openai", "fastapi", "redis", "voice-assistant"]
+dependencies = [
+  "asyncpg>=0.31.0,<0.32.0",
+  "fastapi>=0.135.1,<0.136.0",
+  "httpx>=0.28.1,<0.29.0",
+  "openai>=2.6.1,<3.0.0",
+  "opentelemetry-api>=1.38.0,<2.0.0",
+  "opentelemetry-exporter-otlp-proto-http>=1.38.0,<2.0.0",
+  "opentelemetry-instrumentation-fastapi>=0.61b0,<1.0.0",
+  "opentelemetry-instrumentation-sqlalchemy>=0.61b0,<1.0.0",
+  "opentelemetry-sdk>=1.38.0,<2.0.0",
+  "prometheus-client>=0.24.1,<0.25.0",
+  "pydantic>=2.12.3,<3.0.0",
+  "pydantic-settings>=2.11.0,<3.0.0",
+  "python-json-logger>=4.0.0,<5.0.0",
+  "redis[hiredis]>=7.3.0,<8.0.0",
+  "sqlalchemy[asyncio]>=2.0.44,<2.1.0",
+  "structlog>=25.4.0,<26.0.0",
+  "tenacity>=9.1.2,<10.0.0",
+  "uvicorn[standard]>=0.42.0,<0.43.0",
+]
+
+[dependency-groups]
+dev = [
+  "coverage[toml]>=7.11.0,<8.0.0",
+  "mypy>=1.18.2,<2.0.0",
+  "pre-commit>=4.3.0,<5.0.0",
+  "pytest>=9.0.2,<10.0.0",
+  "pytest-asyncio>=1.2.0,<2.0.0",
+  "pytest-cov>=7.0.0,<8.0.0",
+  "ruff>=0.15.7,<0.16.0",
+  "types-redis>=4.6.0.20241004",
+]
+
+[project.scripts]
+alice-api = "alice_openai_backend.main:run"
+alice-worker = "alice_openai_backend.workers.deferred_worker:run"
+
+[build-system]
+requires = ["hatchling>=1.27.0,<2.0.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/alice_openai_backend"]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["B", "C4", "E", "F", "FA", "I", "N", "PERF", "RUF", "UP", "W"]
+ignore = ["B008", "RUF001"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers --strict-config --cov=src/alice_openai_backend --cov-report=term-missing"
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["src/alice_openai_backend"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+[tool.mypy]
+python_version = "3.14"
+plugins = []
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_any_generics = true
+no_implicit_reexport = true
+namespace_packages = true
+mypy_path = ["src"]
+
+[[tool.mypy.overrides]]
+module = [
+  "opentelemetry.instrumentation.fastapi",
+  "opentelemetry.instrumentation.sqlalchemy",
+  "prometheus_client.*",
+]
+ignore_missing_imports = true
