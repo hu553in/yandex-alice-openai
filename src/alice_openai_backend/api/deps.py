@@ -6,4 +6,4 @@ from alice_openai_backend.application.bootstrap import Container
 
 
 def get_container(request: Request) -> Container:
-    return request.app.state.container  # type: ignore[no-any-return]
+    return request.app.state.container

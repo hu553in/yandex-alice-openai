@@ -133,20 +133,22 @@ class FakeQueue:
         self.jobs.append(job)
 
     async def read_group(self, consumer_name: str) -> list[DeferredJob]:
+        _ = consumer_name
         return []
 
     async def ack(self, stream_id: str) -> None:
-        return None
+        _ = stream_id
 
 
 class FailingQueue(FakeQueue):
     async def enqueue(self, job: DeferredJob) -> None:
+        _ = job
         raise RuntimeError("queue down")
 
 
 class FakeAnalytics:
     async def persist_turns(self, conversation_key: str, turns: Sequence[ConversationTurn]) -> None:
-        return None
+        _ = conversation_key, turns
 
     async def persist_job_result(
         self,
@@ -154,7 +156,7 @@ class FakeAnalytics:
         reply: LLMReply | None,
         error: str | None,
     ) -> None:
-        return None
+        _ = job, reply, error
 
 
 class FakeLLM:
@@ -181,6 +183,7 @@ class FakeLLM:
         deadline_seconds: float,
         max_output_tokens: int | None = None,
     ) -> LLMReply:
+        _ = user_text, history, request_id
         self.call_count += 1
         self.deadlines.append(deadline_seconds)
         self.max_output_tokens_seen.append(max_output_tokens)

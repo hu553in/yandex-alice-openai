@@ -15,7 +15,7 @@ lint:
 	$(UV) run ruff check .
 
 typecheck:
-	$(UV) run mypy src tests
+	$(UV) run ty check
 
 test:
 	$(UV) run pytest

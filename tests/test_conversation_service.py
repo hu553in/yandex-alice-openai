@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import cast
+from typing import Any, cast
 
 import pytest
 
@@ -54,6 +54,7 @@ class EscalatingFakeLLM:
         deadline_seconds: float,
         max_output_tokens: int | None = None,
     ) -> LLMReply:
+        _ = user_text, history, request_id, deadline_seconds
         self.call_count += 1
         self.max_output_tokens_seen.append(max_output_tokens)
         step = self.steps[self.call_count - 1]
@@ -351,7 +352,7 @@ async def test_fast_path_deferred_offer_is_stored_as_protocol_state(
             continuation_request="Собери подробнее лор стримера EgorFromGor по каналу и клипам.",
         )
 
-    llm.generate_reply = generate_reply_with_offer  # type: ignore[method-assign]
+    llm.generate_reply = cast(Any, generate_reply_with_offer)
     pending_store = FakePendingStore()
     service = ConversationService(
         conversation_store=FakeConversationStore(),

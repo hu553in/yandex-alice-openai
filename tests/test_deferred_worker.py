@@ -16,11 +16,13 @@ class StubConversationService:
         self.fail_calls = 0
 
     async def process_deferred_job(self, job: DeferredJob, *, deadline_seconds: float) -> None:
+        _ = job, deadline_seconds
         self.process_calls += 1
         if self.fail_process:
             raise RuntimeError("process failed")
 
     async def fail_deferred_job(self, job: DeferredJob, *, error_message: str) -> None:
+        _ = job, error_message
         self.fail_calls += 1
         if self.fail_persist:
             raise RuntimeError("persist failed")

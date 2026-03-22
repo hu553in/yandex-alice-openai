@@ -75,7 +75,7 @@ class RedisStreamQueue:
         return []
 
     async def ack(self, stream_id: str) -> None:
-        await self._redis.xack(  # type: ignore[no-untyped-call]
+        await self._redis.xack(
             self._keys.stream(),
             self._consumer_group,
             stream_id,

@@ -79,13 +79,12 @@ def is_continue_intent(text: str, *, pending_exists: bool = False) -> bool:
     if any(token not in _ALLOWED_CONTINUE_TOKENS for token in tokens):
         return False
 
-    has_continue_token = any(token in _CONTINUE_TOKENS for token in tokens)
-    has_affirmation_only = all(token in (_AFFIRMATION_TOKENS | _FILLER_TOKENS) for token in tokens)
-    if has_continue_token:
+    if any(token in _CONTINUE_TOKENS for token in tokens):
         return True
-    if has_affirmation_only:
-        return pending_exists
-    return False
+
+    return pending_exists and all(
+        token in (_AFFIRMATION_TOKENS | _FILLER_TOKENS) for token in tokens
+    )
 
 
 def _normalize_intent_text(text: str) -> str:

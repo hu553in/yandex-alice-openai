@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any, cast
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -42,9 +43,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Alice OpenAI Backend", version="0.1.0", lifespan=lifespan)
-    app.add_middleware(RequestIDMiddleware)
+    app.add_middleware(cast(Any, RequestIDMiddleware))
     if settings.app().metrics_enabled:
-        app.add_middleware(MetricsMiddleware)
+        app.add_middleware(cast(Any, MetricsMiddleware))
         app.include_router(metrics_router())
     app.include_router(health_router)
     app.include_router(alice_router)

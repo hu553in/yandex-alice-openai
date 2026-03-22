@@ -16,6 +16,8 @@ from alice_openai_backend.schemas.alice import (
     AliceWebhookRequest,
 )
 
+HTTP_OK = status.HTTP_200_OK
+
 
 class StubConversationService:
     def __init__(self, *, idempotency_store: StubIdempotencyStore | None = None) -> None:
@@ -55,7 +57,6 @@ class StubRateLimiter:
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="rate limit exceeded",
             )
-        return None
 
 
 class StubIdempotencyStore:
@@ -122,7 +123,7 @@ def test_webhook_route_returns_alice_shape(alice_session: AliceSession) -> None:
 
     response = client.post("/webhooks/alice", json=payload.model_dump())
 
-    assert response.status_code == 200
+    assert response.status_code == HTTP_OK
     body = response.json()
     assert body["response"]["text"] == "Маршрут работает."
     assert body["session"]["session_id"] == "session-1"
@@ -144,7 +145,7 @@ def test_webhook_route_returns_alice_shape_for_invalid_webhook_secret(
         headers={"x-alice-secret": "wrong-secret"},
     )
 
-    assert response.status_code == 200
+    assert response.status_code == HTTP_OK
     body = response.json()
     assert body["response"]["text"] == "Запрос не прошел проверку. Попробуй позже."
     assert body["response"]["tts"] == "Запрос не прошел проверку. Попробуй позже."
@@ -163,7 +164,7 @@ def test_webhook_route_returns_alice_shape_for_rate_limit(alice_session: AliceSe
 
     response = client.post("/webhooks/alice", json=payload.model_dump())
 
-    assert response.status_code == 200
+    assert response.status_code == HTTP_OK
     body = response.json()
     assert body["response"]["text"] == "Слишком много запросов подряд. Попробуй чуть позже."
 
@@ -191,7 +192,7 @@ def test_webhook_route_skips_rate_limit_for_cached_duplicate(alice_session: Alic
 
     response = client.post("/webhooks/alice", json=payload.model_dump())
 
-    assert response.status_code == 200
+    assert response.status_code == HTTP_OK
     assert response.json()["response"]["text"] == "Из кэша."
     assert rate_limiter.checked_buckets == []
 
@@ -246,6 +247,6 @@ def test_webhook_route_returns_alice_shape_for_runtime_error(alice_session: Alic
 
     response = client.post("/webhooks/alice", json=payload.model_dump())
 
-    assert response.status_code == 200
+    assert response.status_code == HTTP_OK
     body = response.json()
     assert body["response"]["text"] == "Сервис временно недоступен. Попробуй чуть позже."

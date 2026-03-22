@@ -149,7 +149,7 @@ uv lock
 uv sync --all-extras
 uv run ruff check .
 uv run ruff format .
-uv run mypy src tests
+uv run ty check
 uv run pytest
 uv run alice-api
 uv run alice-worker

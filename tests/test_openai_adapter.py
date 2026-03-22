@@ -22,6 +22,10 @@ from alice_openai_backend.infra.llm.openai_adapter import (
     _split_short_and_tail,
 )
 
+MAX_DEADLINE_ELAPSED_SECONDS = 0.15
+REQUESTED_MAX_OUTPUT_TOKENS = 512
+SHORT_REPLY_LIMIT = 420
+
 
 def test_build_input_items_uses_output_text_for_assistant_history() -> None:
     history = [
@@ -139,7 +143,7 @@ def test_response_is_incomplete_when_message_status_is_incomplete() -> None:
 @pytest.mark.asyncio
 async def test_adapter_enforces_total_deadline_budget_across_attempts() -> None:
     class SlowResponses:
-        async def create(self, **kwargs: object) -> object:
+        async def create(self, **_kwargs: object) -> object:
             await asyncio.sleep(0.2)
             return object()
 
@@ -153,7 +157,7 @@ async def test_adapter_enforces_total_deadline_budget_across_attempts() -> None:
         system_prompt="test",
     )
     adapter = OpenAIResponsesAdapter(settings)
-    adapter._client = SimpleNamespace(responses=SlowResponses())  # type: ignore[assignment]
+    adapter._client = SimpleNamespace(responses=SlowResponses())
 
     started_at = monotonic()
     with pytest.raises(TimeoutError):
@@ -165,13 +169,13 @@ async def test_adapter_enforces_total_deadline_budget_across_attempts() -> None:
         )
     elapsed = monotonic() - started_at
 
-    assert elapsed < 0.15
+    assert elapsed < MAX_DEADLINE_ELAPSED_SECONDS
 
 
 @pytest.mark.asyncio
 async def test_adapter_rejects_incomplete_openai_response() -> None:
     class IncompleteResponses:
-        async def create(self, **kwargs: object) -> object:
+        async def create(self, **_kwargs: object) -> object:
             return SimpleNamespace(
                 status="incomplete",
                 incomplete_details=SimpleNamespace(reason="max_output_tokens"),
@@ -189,7 +193,7 @@ async def test_adapter_rejects_incomplete_openai_response() -> None:
         system_prompt="test",
     )
     adapter = OpenAIResponsesAdapter(settings)
-    adapter._client = SimpleNamespace(responses=IncompleteResponses())  # type: ignore[assignment]
+    adapter._client = SimpleNamespace(responses=IncompleteResponses())
 
     with pytest.raises(IncompleteResponseError):
         await adapter.generate_reply(
@@ -224,18 +228,18 @@ async def test_adapter_uses_requested_max_output_tokens() -> None:
         system_prompt="test",
     )
     adapter = OpenAIResponsesAdapter(settings)
-    adapter._client = SimpleNamespace(responses=Responses())  # type: ignore[assignment]
+    adapter._client = SimpleNamespace(responses=Responses())
 
     reply = await adapter.generate_reply(
         user_text="привет",
         history=[],
         request_id="req-3",
         deadline_seconds=0.2,
-        max_output_tokens=512,
+        max_output_tokens=REQUESTED_MAX_OUTPUT_TOKENS,
     )
 
     assert reply.short_text == "Готовый ответ."
-    assert captured_kwargs["max_output_tokens"] == 512
+    assert captured_kwargs["max_output_tokens"] == REQUESTED_MAX_OUTPUT_TOKENS
 
 
 def test_prepare_llm_reply_does_not_leave_truncated_word_at_the_end() -> None:
@@ -297,8 +301,8 @@ def test_split_short_and_tail_keeps_first_long_sentence_within_limit() -> None:
         + "и только потом заканчивается. Второе предложение короткое."
     )
 
-    head, tail = _split_short_and_tail(text, limit=420)
+    head, tail = _split_short_and_tail(text, limit=SHORT_REPLY_LIMIT)
 
-    assert len(head) <= 420
+    assert len(head) <= SHORT_REPLY_LIMIT
     assert head.endswith("...")
     assert tail is not None

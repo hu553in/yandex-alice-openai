@@ -2,8 +2,8 @@
 set -euo pipefail
 
 if ! command -v cloudflared >/dev/null 2>&1; then
-  echo "cloudflared is required. Install it first."
-  exit 1
+    echo "cloudflared is required. Install it first."
+    exit 1
 fi
 
 PORT="${1:-8080}"

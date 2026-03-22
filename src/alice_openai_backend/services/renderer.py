@@ -5,6 +5,7 @@ import re
 from alice_openai_backend.schemas.alice import AliceButtonsItem, AliceResponsePayload
 
 MAX_ALICE_FIELD_LENGTH = 1024
+MIN_SENTENCE_TRUNCATION_INDEX = 200
 
 
 def render_voice_response(
@@ -43,7 +44,7 @@ def _clip(text: str, *, limit: int) -> str:
         return text
     cutoff = text[: limit - 1]
     sentence_end = max(cutoff.rfind("."), cutoff.rfind("!"), cutoff.rfind("?"), cutoff.rfind("…"))
-    if sentence_end >= 200:
+    if sentence_end >= MIN_SENTENCE_TRUNCATION_INDEX:
         cutoff = cutoff[: sentence_end + 1]
     else:
         word_end = cutoff.rfind(" ")

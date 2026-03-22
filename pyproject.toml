@@ -32,12 +32,12 @@ dependencies = [
 [dependency-groups]
 dev = [
   "coverage[toml]>=7.11.0,<8.0.0",
-  "mypy>=1.18.2,<2.0.0",
   "pre-commit>=4.3.0,<5.0.0",
   "pytest>=9.0.2,<10.0.0",
   "pytest-asyncio>=1.2.0,<2.0.0",
   "pytest-cov>=7.0.0,<8.0.0",
   "ruff>=0.15.7,<0.16.0",
+  "ty>=0.0.24,<0.1.0",
   "types-redis>=4.6.0.20241004",
 ]
 
@@ -61,8 +61,29 @@ line-length = 100
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-select = ["B", "C4", "E", "F", "FA", "I", "N", "PERF", "RUF", "UP", "W"]
+select = [
+  "ARG",
+  "B",
+  "C4",
+  "E",
+  "F",
+  "FA",
+  "I",
+  "N",
+  "PERF",
+  "PL",
+  "RUF",
+  "SIM",
+  "UP",
+  "W",
+]
 ignore = ["B008", "RUF001"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/alice_openai_backend/domain/ports.py" = ["PLR0913"]
+"src/alice_openai_backend/infra/redis/stores.py" = ["PLR0913"]
+"src/alice_openai_backend/services/conversation.py" = ["PLR0911", "PLR0913"]
+"tests/conftest.py" = ["PLR0913"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -82,21 +103,16 @@ source = ["src/alice_openai_backend"]
 show_missing = true
 skip_covered = false
 
-[tool.mypy]
-python_version = "3.14"
-plugins = []
-strict = true
-warn_return_any = true
-warn_unused_configs = true
-disallow_any_generics = true
-no_implicit_reexport = true
-namespace_packages = true
-mypy_path = ["src"]
+[tool.ty.environment]
+python-version = "3.14"
+root = [".", "./src"]
 
-[[tool.mypy.overrides]]
-module = [
+[tool.ty.src]
+include = ["src", "tests"]
+
+[tool.ty.analysis]
+allowed-unresolved-imports = [
   "opentelemetry.instrumentation.fastapi",
   "opentelemetry.instrumentation.sqlalchemy",
-  "prometheus_client.*",
+  "prometheus_client.**",
 ]
-ignore_missing_imports = true
