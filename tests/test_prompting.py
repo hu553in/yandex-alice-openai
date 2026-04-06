@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from alice_openai_backend.services.prompting import is_continue_intent
+from yandex_alice_openai.services.prompting import is_continue_intent
 
 
 def test_continue_intent_recognizes_natural_voice_followups() -> None:

@@ -1,118 +1,104 @@
 [project]
-name = "alice-openai-backend"
+name = "yandex-alice-openai"
 version = "0.1.0"
-description = "Production-grade Alice skill backend with OpenAI Responses API, Redis memory, and deferred replies."
+description = "Yandex Alice skill backend with OpenAI Responses API, Redis memory, and deferred replies."
 readme = "README.md"
-requires-python = ">=3.14,<3.15"
+requires-python = ">=3.14"
 license = "MIT"
 license-files = ["LICENSE"]
-authors = [{ name = "Codex Starter Kit" }]
-keywords = ["alice", "yandex", "openai", "fastapi", "redis", "voice-assistant"]
+authors = [{ name = "Ruslan Khasanshin" }]
+maintainers = [{ name = "Ruslan Khasanshin" }]
+
 dependencies = [
-  "asyncpg>=0.31.0,<0.32.0",
-  "fastapi>=0.135.1,<0.136.0",
-  "httpx>=0.28.1,<0.29.0",
-  "openai>=2.6.1,<3.0.0",
-  "opentelemetry-api>=1.38.0,<2.0.0",
-  "opentelemetry-exporter-otlp-proto-http>=1.38.0,<2.0.0",
-  "opentelemetry-instrumentation-fastapi>=0.61b0,<1.0.0",
-  "opentelemetry-instrumentation-sqlalchemy>=0.61b0,<1.0.0",
-  "opentelemetry-sdk>=1.38.0,<2.0.0",
-  "prometheus-client>=0.24.1,<0.25.0",
-  "pydantic>=2.12.3,<3.0.0",
-  "pydantic-settings>=2.11.0,<3.0.0",
-  "python-json-logger>=4.0.0,<5.0.0",
-  "redis[hiredis]>=7.3.0,<8.0.0",
-  "sqlalchemy[asyncio]>=2.0.44,<2.1.0",
-  "structlog>=25.4.0,<26.0.0",
-  "tenacity>=9.1.2,<10.0.0",
-  "uvicorn[standard]>=0.42.0,<0.43.0",
+  "asyncpg>=0.31.0",
+  "fastapi>=0.135.1",
+  "httpx>=0.28.1",
+  "openai>=2.6.1",
+  "pydantic>=2.12.3",
+  "pydantic-settings>=2.11.0",
+  "redis[hiredis]>=7.3.0",
+  "sqlalchemy[asyncio]>=2.0.44",
+  "structlog>=25.4.0",
+  "tenacity>=9.1.2",
+  "uvicorn[standard]>=0.44.0",
 ]
 
 [dependency-groups]
 dev = [
-  "coverage[toml]>=7.11.0,<8.0.0",
-  "pre-commit>=4.3.0,<5.0.0",
-  "pytest>=9.0.2,<10.0.0",
-  "pytest-asyncio>=1.2.0,<2.0.0",
-  "pytest-cov>=7.0.0,<8.0.0",
-  "ruff>=0.15.7,<0.16.0",
-  "ty>=0.0.24,<0.1.0",
+  "bandit>=1.9.4",
+  "prek>=0.3.8",
+  "pysentry-rs>=0.4.3",
+  "pytest>=9.0.2",
+  "pytest-asyncio>=1.2.0",
+  "pytest-cov>=7.1.0",
+  "ruff>=0.15.9",
+  "ty>=0.0.28",
   "types-redis>=4.6.0.20241004",
 ]
 
 [project.scripts]
-alice-api = "alice_openai_backend.main:run"
-alice-worker = "alice_openai_backend.workers.deferred_worker:run"
+yandex-alice-openai-api = "yandex_alice_openai.main:run"
+yandex-alice-openai-worker = "yandex_alice_openai.workers.deferred_worker:run"
 
 [build-system]
-requires = ["hatchling>=1.27.0,<2.0.0"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/alice_openai_backend"]
+packages = ["src/yandex_alice_openai"]
 
 [tool.uv]
 default-groups = ["dev"]
+link-mode = "copy"
 
 [tool.ruff]
 target-version = "py314"
 line-length = 100
-src = ["src", "tests"]
+extend-exclude = [".venv"]
 
 [tool.ruff.lint]
 select = [
-  "ARG",
-  "B",
-  "C4",
   "E",
   "F",
-  "FA",
   "I",
-  "N",
-  "PERF",
+  "UP",
+  "B",
+  "SIM",
+  "ARG",
   "PL",
   "RUF",
-  "SIM",
-  "UP",
+  "C4",
+  "FA",
+  "N",
+  "PERF",
   "W",
 ]
-ignore = ["B008", "RUF001"]
+extend-ignore = ["B008", "RUF001"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["yandex_alice_openai"]
+split-on-trailing-comma = false
 
 [tool.ruff.lint.per-file-ignores]
-"src/alice_openai_backend/domain/ports.py" = ["PLR0913"]
-"src/alice_openai_backend/infra/redis/stores.py" = ["PLR0913"]
-"src/alice_openai_backend/services/conversation.py" = ["PLR0911", "PLR0913"]
+"src/yandex_alice_openai/domain/ports.py" = ["PLR0913"]
+"src/yandex_alice_openai/infra/redis/stores.py" = ["PLR0913"]
+"src/yandex_alice_openai/services/conversation.py" = ["PLR0911", "PLR0913"]
 "tests/conftest.py" = ["PLR0913"]
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
-skip-magic-trailing-comma = false
+skip-magic-trailing-comma = true
 
 [tool.pytest.ini_options]
-addopts = "--strict-markers --strict-config --cov=src/alice_openai_backend --cov-report=term-missing"
+addopts = "--strict-markers --strict-config --cov=src --cov-report=term-missing"
 asyncio_mode = "auto"
-testpaths = ["tests"]
 
-[tool.coverage.run]
-branch = true
-source = ["src/alice_openai_backend"]
+[tool.pysentry.defaults]
+fail_on = "low"
 
-[tool.coverage.report]
-show_missing = true
-skip_covered = false
+[tool.pysentry.sources]
+enabled = ["pypa", "pypi", "osv"]
 
-[tool.ty.environment]
-python-version = "3.14"
-root = [".", "./src"]
-
-[tool.ty.src]
-include = ["src", "tests"]
-
-[tool.ty.analysis]
-allowed-unresolved-imports = [
-  "opentelemetry.instrumentation.fastapi",
-  "opentelemetry.instrumentation.sqlalchemy",
-  "prometheus_client.**",
-]
+[tool.bandit.assert_used]
+skips = ["*_test.py", "*test_*.py"]

@@ -1,33 +1,53 @@
-UV := uv
+SHELL := /bin/bash
+.ONESHELL:
+.SHELLFLAGS := -euo pipefail -c
 
-.PHONY: sync lock format lint typecheck test run worker compose-up compose-down
+.PHONY: ensure_env
+ensure_env:
+	if [ ! -f .env ]; then cp .env.example .env; fi
 
-sync:
-	$(UV) sync --all-extras
+.PHONY: install_deps
+install_deps:
+	uv sync --all-groups --frozen
 
-lock:
-	$(UV) lock
+.PHONY: sync_deps
+sync_deps:
+	uv sync --all-groups
 
-format:
-	$(UV) run ruff format .
+.PHONY: check_deps_updates
+check_deps_updates:
+	uv tree --outdated --depth=1 | grep latest
 
+.PHONY: check_deps_vuln
+check_deps_vuln:
+	uv run pysentry-rs .
+
+.PHONY: lint
 lint:
-	$(UV) run ruff check .
+	uv run ruff format
+	uv run ruff check --fix
 
-typecheck:
-	$(UV) run ty check
-
+.PHONY: test
 test:
-	$(UV) run pytest
+	uv run pytest
 
-run:
-	$(UV) run alice-api
+.PHONY: check_types
+check_types:
+	uv run ty check .
 
-worker:
-	$(UV) run alice-worker
+.PHONY: check
+check:
+	uv run prek --all-files --hook-stage pre-commit
 
-compose-up:
-	docker compose up --build
+# Project-specific
 
-compose-down:
+.PHONY: start
+start: ensure_env
+	docker compose up -d --build --wait --remove-orphans
+
+.PHONY: stop
+stop: ensure_env
 	docker compose down --remove-orphans
+
+.PHONY: restart
+restart: stop start

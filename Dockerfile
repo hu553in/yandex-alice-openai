@@ -1,35 +1,33 @@
-FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim AS builder
+# syntax=docker/dockerfile:1
 
+FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim AS deps
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
-    && rm -rf /var/lib/apt/lists/*
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv \
+    UV_CACHE_DIR=/root/.cache/uv
 
-COPY pyproject.toml README.md ./
-COPY uv.lock ./
-RUN uv sync --frozen --no-install-project --no-dev
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
 
-COPY src ./src
-
-RUN uv sync --frozen --no-dev
-
-FROM python:3.14-slim-bookworm
+FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim AS runner
+WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PATH="/app/.venv/bin:$PATH"
+    PYTHONPATH=/app/src \
+    UV_PROJECT_ENVIRONMENT=/app/.venv
 
-WORKDIR /app
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    apt-get update && \
+    apt-get install -y --no-install-recommends wget
 
-RUN addgroup --system app && adduser --system --ingroup app app
+RUN useradd -m app
 
-COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /app/src /app/src
-
-RUN chown -R app:app /app
+COPY --from=deps --chown=app:app /app/.venv ./.venv
+COPY --chown=app:app pyproject.toml uv.lock ./
+COPY --chown=app:app src ./src
 
 USER app
-
 EXPOSE 8080
-
-CMD ["uvicorn", "alice_openai_backend.main:app", "--host", "0.0.0.0", "--port", "8080"]

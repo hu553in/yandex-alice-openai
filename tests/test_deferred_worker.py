@@ -4,8 +4,8 @@ from dataclasses import dataclass
 
 import pytest
 
-from alice_openai_backend.domain.models import DeferredJob
-from alice_openai_backend.workers.deferred_worker import _process_job
+from yandex_alice_openai.domain.models import DeferredJob
+from yandex_alice_openai.workers.deferred_worker import _process_job
 
 
 class StubConversationService:
@@ -37,10 +37,7 @@ class StubContainer:
 async def test_process_job_requests_ack_after_success() -> None:
     container = StubContainer(conversation_service=StubConversationService())
     job = DeferredJob(
-        job_id="job-1",
-        request_id="req-1",
-        conversation_key="scope-1",
-        user_text="вопрос",
+        job_id="job-1", request_id="req-1", conversation_key="scope-1", user_text="вопрос"
     )
 
     should_ack = await _process_job(container, job)
@@ -54,10 +51,7 @@ async def test_process_job_requests_ack_after_success() -> None:
 async def test_process_job_requests_ack_after_failure_is_persisted() -> None:
     container = StubContainer(conversation_service=StubConversationService(fail_process=True))
     job = DeferredJob(
-        job_id="job-2",
-        request_id="req-2",
-        conversation_key="scope-2",
-        user_text="вопрос",
+        job_id="job-2", request_id="req-2", conversation_key="scope-2", user_text="вопрос"
     )
 
     should_ack = await _process_job(container, job)
@@ -73,10 +67,7 @@ async def test_process_job_keeps_message_pending_when_failure_persist_fails() ->
         conversation_service=StubConversationService(fail_process=True, fail_persist=True)
     )
     job = DeferredJob(
-        job_id="job-3",
-        request_id="req-3",
-        conversation_key="scope-3",
-        user_text="вопрос",
+        job_id="job-3", request_id="req-3", conversation_key="scope-3", user_text="вопрос"
     )
 
     should_ack = await _process_job(container, job)

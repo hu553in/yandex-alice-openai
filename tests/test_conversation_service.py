@@ -6,20 +6,6 @@ from typing import Any, cast
 
 import pytest
 
-from alice_openai_backend.domain.models import (
-    ConversationTurn,
-    FollowupMode,
-    LLMReply,
-    PendingReply,
-    PendingStatus,
-)
-from alice_openai_backend.infra.llm.openai_adapter import IncompleteResponseError
-from alice_openai_backend.schemas.alice import (
-    AliceRequestPayload,
-    AliceSession,
-    AliceWebhookRequest,
-)
-from alice_openai_backend.services.conversation import ConversationService
 from tests.conftest import (
     FailingQueue,
     FakeAnalytics,
@@ -30,6 +16,16 @@ from tests.conftest import (
     FakeQueue,
     ready_pending,
 )
+from yandex_alice_openai.domain.models import (
+    ConversationTurn,
+    FollowupMode,
+    LLMReply,
+    PendingReply,
+    PendingStatus,
+)
+from yandex_alice_openai.infra.llm.openai_adapter import IncompleteResponseError
+from yandex_alice_openai.schemas.alice import AliceRequestPayload, AliceSession, AliceWebhookRequest
+from yandex_alice_openai.services.conversation import ConversationService
 
 
 @dataclass
@@ -109,10 +105,7 @@ async def test_slow_path_enqueues_job_and_returns_prompt(alice_session: AliceSes
     )
     payload = AliceWebhookRequest(
         session=alice_session,
-        request=AliceRequestPayload(
-            command="сложный вопрос",
-            original_utterance="сложный вопрос",
-        ),
+        request=AliceRequestPayload(command="сложный вопрос", original_utterance="сложный вопрос"),
     )
 
     response = await service.handle(payload)
@@ -172,10 +165,7 @@ async def test_new_question_is_blocked_while_previous_reply_is_processing(
     )
     payload = AliceWebhookRequest(
         session=alice_session.model_copy(update={"message_id": 3}),
-        request=AliceRequestPayload(
-            command="новый вопрос",
-            original_utterance="новый вопрос",
-        ),
+        request=AliceRequestPayload(command="новый вопрос", original_utterance="новый вопрос"),
     )
 
     response = await service.handle(payload)
@@ -201,10 +191,7 @@ async def test_new_question_is_blocked_when_ready_reply_is_waiting(
     )
     payload = AliceWebhookRequest(
         session=alice_session.model_copy(update={"message_id": 4}),
-        request=AliceRequestPayload(
-            command="еще вопрос",
-            original_utterance="еще вопрос",
-        ),
+        request=AliceRequestPayload(command="еще вопрос", original_utterance="еще вопрос"),
     )
 
     response = await service.handle(payload)
@@ -366,8 +353,7 @@ async def test_fast_path_deferred_offer_is_stored_as_protocol_state(
     payload = AliceWebhookRequest(
         session=alice_session,
         request=AliceRequestPayload(
-            command="расскажи про лор",
-            original_utterance="расскажи про лор",
+            command="расскажи про лор", original_utterance="расскажи про лор"
         ),
     )
 

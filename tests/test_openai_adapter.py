@@ -8,9 +8,9 @@ from types import SimpleNamespace
 import pytest
 from pydantic import SecretStr
 
-from alice_openai_backend.config import OpenAISettings
-from alice_openai_backend.domain.models import ConversationTurn, FollowupMode, TurnRole
-from alice_openai_backend.infra.llm.openai_adapter import (
+from yandex_alice_openai.config import OpenAISettings
+from yandex_alice_openai.domain.models import ConversationTurn, FollowupMode, TurnRole
+from yandex_alice_openai.infra.llm.openai_adapter import (
     IncompleteResponseError,
     OpenAIResponsesAdapter,
     _build_input_items,
@@ -65,10 +65,7 @@ def test_build_input_items_uses_output_text_for_assistant_history() -> None:
 
 def test_build_tools_enables_web_search_with_low_context_by_default() -> None:
     assert _build_tools(web_search_enabled=True, web_search_context_size="low") == [
-        {
-            "type": "web_search",
-            "search_context_size": "low",
-        }
+        {"type": "web_search", "search_context_size": "low"}
     ]
 
 
@@ -149,7 +146,7 @@ async def test_adapter_enforces_total_deadline_budget_across_attempts() -> None:
 
     settings = OpenAISettings(
         api_key=SecretStr("test-key"),
-        model="gpt-5-mini",
+        model="gpt-5.4-mini",
         timeout_seconds=0.05,
         max_retries=1,
         web_search_enabled=False,
@@ -162,10 +159,7 @@ async def test_adapter_enforces_total_deadline_budget_across_attempts() -> None:
     started_at = monotonic()
     with pytest.raises(TimeoutError):
         await adapter.generate_reply(
-            user_text="привет",
-            history=[],
-            request_id="req-1",
-            deadline_seconds=0.05,
+            user_text="привет", history=[], request_id="req-1", deadline_seconds=0.05
         )
     elapsed = monotonic() - started_at
 
@@ -185,7 +179,7 @@ async def test_adapter_rejects_incomplete_openai_response() -> None:
 
     settings = OpenAISettings(
         api_key=SecretStr("test-key"),
-        model="gpt-5-mini",
+        model="gpt-5.4-mini",
         timeout_seconds=0.2,
         max_retries=0,
         web_search_enabled=False,
@@ -197,10 +191,7 @@ async def test_adapter_rejects_incomplete_openai_response() -> None:
 
     with pytest.raises(IncompleteResponseError):
         await adapter.generate_reply(
-            user_text="привет",
-            history=[],
-            request_id="req-2",
-            deadline_seconds=0.2,
+            user_text="привет", history=[], request_id="req-2", deadline_seconds=0.2
         )
 
 
@@ -212,15 +203,12 @@ async def test_adapter_uses_requested_max_output_tokens() -> None:
         async def create(self, **kwargs: object) -> object:
             captured_kwargs.update(kwargs)
             return SimpleNamespace(
-                status="completed",
-                incomplete_details=None,
-                output_text="Готовый ответ.",
-                output=[],
+                status="completed", incomplete_details=None, output_text="Готовый ответ.", output=[]
             )
 
     settings = OpenAISettings(
         api_key=SecretStr("test-key"),
-        model="gpt-5-mini",
+        model="gpt-5.4-mini",
         timeout_seconds=0.2,
         max_retries=0,
         web_search_enabled=False,

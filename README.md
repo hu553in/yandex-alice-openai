@@ -1,238 +1,257 @@
-# Alice OpenAI Backend
+# Yandex Alice OpenAI
 
-Production-grade starter kit for a Yandex Alice skill webhook that routes user utterances to the OpenAI Responses API, keeps short-term dialog memory in Redis, persists analytics to PostgreSQL, and survives Alice's tight response deadline with a deferred reply flow.
+[![CI](https://github.com/hu553in/yandex-alice-openai/actions/workflows/ci.yml/badge.svg)](https://github.com/hu553in/yandex-alice-openai/actions/workflows/ci.yml)
 
-Published container image naming convention:
+- [License](./LICENSE)
+- [How to contribute](./CONTRIBUTING.md)
+- [Code of conduct](./CODE_OF_CONDUCT.md)
 
-- `ghcr.io/<github_owner>/<repo_name>`
+FastAPI backend for a Yandex Alice skill that uses the OpenAI Responses API, keeps short-term dialog state
+in Redis, stores analytics in PostgreSQL, and falls back to deferred replies when Yandex Alice's response deadline
+is too tight.
 
-## Why this stack
+---
 
-- Python 3.14 + `uv`: strongest balance here for async backend work, typing, testability, and low-friction DX.
-- FastAPI + Pydantic v2: typed webhook contracts, fast iteration, mature ASGI deployment story.
-- Redis: short-term memory, idempotency, rate limiting, and deferred job state with low latency.
-- PostgreSQL: durable turn storage and job-result analytics without coupling online latency to writes.
-- Official OpenAI Python SDK with Responses API: modern API surface, no legacy ChatCompletion usage.
-- Redis Streams worker instead of Celery/RQ/Arq: fewer moving parts and lower compatibility risk for Python 3.14 in a starter template.
+## Why this project
 
-## High-level architecture
+- Handles Yandex Alice's short webhook timeout without dropping the conversation.
+- Keeps dialog memory and idempotency in Redis instead of in-process state.
+- Persists turn history and deferred job outcomes to PostgreSQL.
+- Uses the official OpenAI Python SDK and the Responses API.
+- Stays easy to run locally with `uv`, Docker Compose, and a single worker process.
+
+---
+
+## What it does
+
+- Accepts `POST /webhooks/alice` requests from Yandex Alice.
+- Tries a fast OpenAI request first with a strict timeout budget.
+- Queues a deferred reply when the fast path is too slow.
+- Returns ready deferred replies when the user says `продолжай` or `подробнее`.
+- Applies Redis-backed idempotency and rate limiting.
+- Emits structured JSON logs with request IDs.
+
+---
+
+## Components
+
+- **api**: FastAPI webhook app for Yandex Alice
+- **worker**: background deferred reply processor
+- **redis**: conversation memory, idempotency, rate limiting, and queue state
+- **postgres**: durable analytics storage
+- **openai**: LLM provider accessed through the Responses API
+
+---
+
+## Architecture
+
+### High-level flow
 
 ```mermaid
 flowchart LR
-    Alice["Yandex Alice"] -->|POST /webhooks/alice| API["FastAPI webhook layer"]
-    API --> Guard["Validation, rate limit, idempotency, correlation ID"]
-    Guard --> Session["Conversation service"]
-    Session --> Redis["Redis<br/>history + pending replies + job queue"]
-    Session --> OpenAI["OpenAI Responses API"]
-    Session --> Renderer["Voice-friendly renderer"]
-    Session --> Postgres["PostgreSQL analytics sink"]
+    Alice["Yandex Alice"] -->|POST /webhooks/alice| API["FastAPI webhook"]
+    API --> Guard["Validation, rate limiting, idempotency, request ID"]
+    Guard --> Service["Conversation service"]
+    Service --> Redis["Redis"]
+    Service --> OpenAI["OpenAI Responses API"]
+    Service --> Postgres["PostgreSQL"]
     Redis --> Worker["Deferred worker"]
     Worker --> OpenAI
     Worker --> Redis
     Worker --> Postgres
-    API --> Metrics["Prometheus / OTEL hooks"]
 ```
 
-## How the 4.5-second Alice limit is handled
+### Request lifecycle
 
-- Fast path: the webhook gives OpenAI a strict short timeout, tuned by `OPENAI_TIMEOUT_SECONDS` and intended to stay around 2.2 seconds so the webhook still has buffer for network jitter and response rendering.
-- Slow path: if the fast path times out or the provider is degraded, the request is written to Redis Streams, a pending state is stored in Redis, and Alice gets: `Я готовлю ответ. Скажи: продолжай.`
-- Resume path: when the user says `продолжай` or `подробнее`, the webhook checks Redis for a ready answer and returns it immediately.
-- Duplicate delivery path: exact webhook retries reuse the cached Alice response and bypass rate limiting, so platform retries do not create duplicate jobs or spurious `429` user-facing failures.
-- Failure path: rate limiting and unexpected runtime faults are translated into Alice-compatible spoken responses instead of raw JSON error payloads.
-- No in-memory state: all state is in Redis, so retries, duplicates, and multi-instance deployments stay coherent.
+1. Yandex Alice sends a webhook payload to `POST /webhooks/alice`.
+2. FastAPI validates the payload, checks the optional webhook secret, reuses cached duplicate responses,
+   and attaches a request ID.
+3. The conversation service loads recent history from Redis and tries the OpenAI fast path with a hard timeout.
+4. If the fast path succeeds, the response is normalized for speech, clipped to Yandex Alice limits, stored in Redis
+   history, and mirrored to PostgreSQL.
+5. If the fast path is too slow or fails, the request is marked as pending and queued for the worker.
+6. The worker generates the deferred answer and marks it as ready in Redis.
+7. When the user says `продолжай` or `подробнее`, the webhook returns the ready follow-up immediately.
 
-## How the 1024-character Alice limit is handled
+### Sequence
 
-- All responses are normalized for speech and stripped of Markdown-like noise.
-- The renderer clips `text` and `tts` to 1024 chars.
-- Long LLM outputs are compressed into a first voice-friendly chunk plus an optional continuation chunk that can be retrieved with `подробнее`.
+```mermaid
+sequenceDiagram
+    participant U as Yandex Alice user
+    participant A as Yandex Alice platform
+    participant API as FastAPI webhook
+    participant R as Redis
+    participant O as OpenAI
+    participant W as Worker
+    participant P as PostgreSQL
 
-## How context is stored
-
-- Redis list per conversation key for recent dialog turns with TTL.
-- Conversation key uses `application_id + user identity + device/session identity`, so anonymous traffic cannot accidentally share history.
-- Redis keeps only the latest bounded number of turns per conversation to keep prompts small and predictable.
-- PostgreSQL stores turn history and deferred job results for durable analytics and operational debugging.
-
-## Repository layout
-
-```text
-.
-├── .github/workflows/ci.yml
-├── .pre-commit-config.yaml
-├── .env.example
-├── Dockerfile
-├── Makefile
-├── docker-compose.yml
-├── docs/
-│   └── architecture.md
-├── examples/
-│   ├── alice-request.json
-│   └── alice-response.json
-├── scripts/
-│   └── dev_tunnel.sh
-├── src/alice_openai_backend/
-│   ├── api/
-│   ├── application/
-│   ├── domain/
-│   ├── infra/
-│   ├── schemas/
-│   ├── services/
-│   ├── workers/
-│   ├── __init__.py
-│   ├── config.py
-│   └── main.py
-└── tests/
+    U->>A: Voice request
+    A->>API: POST /webhooks/alice
+    API->>R: idempotency + history + rate limit
+    API->>O: fast-path request
+    alt fast enough
+        O-->>API: short reply
+        API->>R: append dialog turns
+        API->>P: persist analytics
+        API-->>A: spoken response
+    else too slow
+        API->>R: pending reply + queue job
+        API-->>A: "Скажи: продолжай"
+        W->>R: consume job
+        W->>O: deferred request
+        O-->>W: full reply
+        W->>R: mark ready
+        W->>P: persist analytics
+        U->>A: "Продолжай"
+        A->>API: POST /webhooks/alice
+        API->>R: fetch ready reply
+        API-->>A: completed answer
+    end
 ```
 
-## Local development
+---
 
-### Prerequisites
+## Quick start
 
-- Python 3.14
-- `uv`
-- Docker and Docker Compose
+1. Copy the environment template: `make ensure_env`
+2. Set `OPENAI_API_KEY`
+3. Start the services: `make start`
 
-### Bootstrap
+For local host-run development instead of Docker:
 
 ```bash
-cp .env.example .env
-uv sync --all-extras
+make ensure_env install_deps
 docker compose up -d redis postgres
-uv run alice-api
+uv run yandex-alice-openai-api
 ```
 
 In another shell:
 
 ```bash
-uv run alice-worker
+uv run yandex-alice-openai-worker
 ```
 
-### Run the published GHCR image
+---
 
-Start Redis and PostgreSQL first. For the same local setup used by the source checkout:
-
-```bash
-docker compose up -d redis postgres
-```
-
-API container:
+## Common commands
 
 ```bash
-docker pull ghcr.io/<github_owner>/<repo_name>:latest
-docker run --rm \
-  --env-file .env \
-  -e REDIS_URL=redis://host.docker.internal:6379/0 \
-  -e DATABASE_URL=postgresql+asyncpg://postgres:postgres@host.docker.internal:5432/alice_openai \
-  -p 8080:8080 \
-  ghcr.io/<github_owner>/<repo_name>:latest
-```
-
-Worker container:
-
-```bash
-docker run --rm \
-  --env-file .env \
-  -e REDIS_URL=redis://host.docker.internal:6379/0 \
-  -e DATABASE_URL=postgresql+asyncpg://postgres:postgres@host.docker.internal:5432/alice_openai \
-  ghcr.io/<github_owner>/<repo_name>:latest \
-  alice-worker
-```
-
-On Linux, replace `host.docker.internal` with the address Docker uses to reach the host, or run the containers on a shared user-defined network.
-
-### Common commands
-
-```bash
-uv lock
-uv sync --all-extras
-uv run ruff check .
-uv run ruff format .
-uv run ty check
-uv run pytest
-uv run alice-api
-uv run alice-worker
-```
-
-Or via `make`:
-
-```bash
-make sync
+make install_deps
+make sync_deps
 make lint
-make typecheck
+make check_types
 make test
-make run
-make worker
+make check
+make start
+make stop
 ```
 
-The repository includes a committed `uv.lock`, and Docker builds use `uv sync --frozen` for reproducible environments.
+---
 
-## API endpoints
+## API
+
+### Endpoints
 
 - `POST /webhooks/alice`
-- `GET /health`
-- `GET /metrics`
+- `GET /healthz`
 
-## Example Alice webhook request
+### Example webhook request
 
-See [examples/alice-request.json](./examples/alice-request.json).
+```json
+{
+  "meta": {
+    "locale": "ru-RU",
+    "timezone": "Europe/Moscow",
+    "client_id": "ru.yandex.searchplugin/7.16"
+  },
+  "session": {
+    "message_id": 1,
+    "session_id": "b7f31b0c-7b14-49cf-8fa6-e83f36316ac6",
+    "user_id": "8E6B9A991AA6C4B4C1C6D0F086",
+    "new": false,
+    "application": {
+      "application_id": "yandex-alice-openai-demo-skill"
+    },
+    "user": {
+      "user_id": "8E6B9A991AA6C4B4C1C6D0F086"
+    }
+  },
+  "request": {
+    "command": "кто написал Мастера и Маргариту",
+    "original_utterance": "кто написал Мастера и Маргариту",
+    "type": "SimpleUtterance"
+  },
+  "state": {
+    "session": {},
+    "user": {},
+    "application": {}
+  },
+  "version": "1.0",
+  "application": {
+    "application_id": "yandex-alice-openai-demo-skill"
+  },
+  "device": {
+    "device_id": "a1b2c3d4-e5f6-7081-92ab-cd34ef567890"
+  }
+}
+```
 
-## Example Alice webhook response
+### Example webhook response
 
-See [examples/alice-response.json](./examples/alice-response.json).
+```json
+{
+  "version": "1.0",
+  "session": {
+    "message_id": 1,
+    "session_id": "b7f31b0c-7b14-49cf-8fa6-e83f36316ac6",
+    "user_id": "8E6B9A991AA6C4B4C1C6D0F086",
+    "new": false,
+    "application": {
+      "application_id": "yandex-alice-openai-demo-skill"
+    },
+    "user": {
+      "user_id": "8E6B9A991AA6C4B4C1C6D0F086"
+    }
+  },
+  "response": {
+    "text": "Роман «Мастер и Маргарита» написал Михаил Булгаков.",
+    "tts": "Роман «Мастер и Маргарита» написал Михаил Булгаков.",
+    "end_session": false,
+    "buttons": []
+  }
+}
+```
+
+---
+
+## Configuration
+
+Main settings live in `.env`:
+
+- `APP_ENV`, `APP_HOST`, `APP_PORT`, `APP_LOG_LEVEL`
+- `APP_RATE_LIMIT_PER_MINUTE`, `APP_WEBHOOK_SECRET`
+- `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_TIMEOUT_SECONDS`, `OPENAI_MAX_RETRIES`
+- `OPENAI_WEB_SEARCH_ENABLED`, `OPENAI_WEB_SEARCH_CONTEXT_SIZE`, `OPENAI_SYSTEM_PROMPT`
+- `REDIS_URL`, `REDIS_PREFIX`, `REDIS_SESSION_TTL_SECONDS`, `REDIS_SESSION_TURN_LIMIT`
+- `REDIS_PENDING_TTL_SECONDS`, `REDIS_IDEMPOTENCY_TTL_SECONDS`, `REDIS_RATE_LIMIT_WINDOW_SECONDS`
+- `DATABASE_URL`, `DATABASE_ECHO`
+- `WORKER_POLL_TIMEOUT_MS`, `WORKER_IDLE_SLEEP_SECONDS`, `WORKER_JOB_TIMEOUT_SECONDS`
+
+---
 
 ## Security defaults
 
-- Optional webhook secret check via `X-Alice-Secret`.
-- Redis-backed rate limiting.
-- Idempotent duplicate handling is scoped by application + user + Alice session message, avoiding cross-skill cache collisions.
-- Strict Pydantic request validation.
-- No secrets in code, only env-based configuration.
-- Request correlation ID in every response header.
-- Graceful degradation when OpenAI is slow or failing.
+- Optional webhook secret validation via `X-Alice-Secret`
+- Redis-backed rate limiting
+- Idempotent duplicate request handling
+- Strict Pydantic request validation
+- Environment-based secrets only
+- Request correlation ID in every response header
 
-## Observability
-
-- Structured JSON logs with request correlation.
-- Prometheus counters and latency histograms.
-- Optional OTLP tracing export.
-- Separate metrics for LLM fast-path outcomes and deferred job states.
+---
 
 ## Container publishing
 
-- CI always builds the Docker image after the test job passes.
-- Pushes to the repository default branch and version tags publish the image to public GHCR using `GITHUB_TOKEN`.
-- Pull requests build the image without pushing, so Docker build breakage is caught before merge.
-
-## Deployment options
-
-### VPS / Docker Compose
-
-- Best for early-stage production and predictable costs.
-- Simple to operate, easiest local-to-prod parity.
-- You manage OS patching and redundancy.
-
-### Kubernetes
-
-- Best when you need horizontal scale, HA, and managed observability.
-- Clean split between API and worker deployments.
-- More operational overhead for a small skill.
-
-### Serverless / Cloud Functions
-
-- Good for webhook API only if cold starts are controlled.
-- Worker is still better as a long-lived process or managed queue consumer.
-- Redis and Postgres remain external; network latency budget gets tighter.
-
-## Python 3.14 compatibility note
-
-This template intentionally avoids a heavier Python queue framework because compatibility lag is likelier there than in the selected core stack. FastAPI, SQLAlchemy, Pydantic, `redis-py`, `httpx`, and the official OpenAI SDK are all mainstream actively maintained libraries; `uv` is used as the package manager, locker, and runner across local dev, Docker, and CI.
-
-## GHCR permissions note
-
-The workflow expects the repository to be public and uses the built-in `GITHUB_TOKEN` to publish to `ghcr.io/<github_owner>/<repo_name>`. Package visibility should remain public in the repository's package settings.
-
-## License
-
-MIT
+- CI runs the same `prek`-based checks as local `make check`
+- Pushes to `main` publish `latest` and `sha-*` images to GHCR
+- Docker builds are pinned by `uv.lock`

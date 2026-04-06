@@ -7,8 +7,8 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
-from alice_openai_backend.api.routes.alice import router
-from alice_openai_backend.schemas.alice import (
+from yandex_alice_openai.api.routes.alice import router
+from yandex_alice_openai.schemas.alice import (
     AliceApplication,
     AliceRequestPayload,
     AliceSession,
@@ -54,8 +54,7 @@ class StubRateLimiter:
         self.checked_buckets.append(bucket)
         if self.raise_limit:
             raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="rate limit exceeded",
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="rate limit exceeded"
             )
 
 
@@ -140,9 +139,7 @@ def test_webhook_route_returns_alice_shape_for_invalid_webhook_secret(
     )
 
     response = client.post(
-        "/webhooks/alice",
-        json=payload.model_dump(),
-        headers={"x-alice-secret": "wrong-secret"},
+        "/webhooks/alice", json=payload.model_dump(), headers={"x-alice-secret": "wrong-secret"}
     )
 
     assert response.status_code == HTTP_OK
@@ -178,12 +175,7 @@ def test_webhook_route_skips_rate_limit_for_cached_duplicate(alice_session: Alic
     idempotency_store.cached[payload.request_key()] = {
         "version": "1.0",
         "session": payload.session.model_dump(),
-        "response": {
-            "text": "Из кэша.",
-            "tts": "Из кэша.",
-            "end_session": False,
-            "buttons": [],
-        },
+        "response": {"text": "Из кэша.", "tts": "Из кэша.", "end_session": False, "buttons": []},
     }
     rate_limiter = StubRateLimiter()
     rate_limiter.raise_limit = True
@@ -198,11 +190,7 @@ def test_webhook_route_skips_rate_limit_for_cached_duplicate(alice_session: Alic
 
 
 def test_request_key_is_scoped_by_application_and_user() -> None:
-    base_session = AliceSession(
-        session_id="session-1",
-        message_id=7,
-        user_id="user-1",
-    )
+    base_session = AliceSession(session_id="session-1", message_id=7, user_id="user-1")
     payload_a = AliceWebhookRequest(
         session=base_session.model_copy(
             update={

@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from alice_openai_backend.domain.models import (
+from yandex_alice_openai.domain.models import (
     ConversationTurn,
     DeferredJob,
     FollowupMode,
@@ -15,7 +15,7 @@ from alice_openai_backend.domain.models import (
     PendingReply,
     PendingStatus,
 )
-from alice_openai_backend.schemas.alice import AliceApplication, AliceSession, AliceUser
+from yandex_alice_openai.schemas.alice import AliceApplication, AliceSession, AliceUser
 
 
 class FakeConversationStore:
@@ -151,21 +151,14 @@ class FakeAnalytics:
         _ = conversation_key, turns
 
     async def persist_job_result(
-        self,
-        job: DeferredJob,
-        reply: LLMReply | None,
-        error: str | None,
+        self, job: DeferredJob, reply: LLMReply | None, error: str | None
     ) -> None:
         _ = job, reply, error
 
 
 class FakeLLM:
     def __init__(
-        self,
-        *,
-        fail: bool = False,
-        reply_text: str = "Короткий ответ.",
-        delay_seconds: float = 0.0,
+        self, *, fail: bool = False, reply_text: str = "Короткий ответ.", delay_seconds: float = 0.0
     ) -> None:
         self.fail = fail
         self.reply_text = reply_text

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from alice_openai_backend.services.renderer import MAX_ALICE_FIELD_LENGTH, render_voice_response
+from yandex_alice_openai.services.renderer import MAX_ALICE_FIELD_LENGTH, render_voice_response
 
 
 def test_renderer_clips_to_alice_limit() -> None:
@@ -28,12 +28,12 @@ def test_renderer_normalizes_lists_for_tts() -> None:
 
 
 def test_renderer_clips_at_word_boundary_when_no_sentence_end_exists() -> None:
-    payload = render_voice_response("слово " * 250)
+    payload = render_voice_response("фраза " * 250)
 
     assert payload.text.endswith("…")
     tokens = payload.text[:-1].split()
     assert tokens
-    assert all(token == "слово" for token in tokens)
+    assert all(token == "фраза" for token in tokens)  # nosec B105
 
 
 def test_renderer_falls_back_when_text_becomes_empty_after_cleanup() -> None:
