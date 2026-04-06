@@ -6,7 +6,7 @@ WORKDIR /app
 ENV UV_PROJECT_ENVIRONMENT=/app/.venv \
     UV_CACHE_DIR=/root/.cache/uv
 
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
