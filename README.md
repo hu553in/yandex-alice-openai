@@ -10,18 +10,6 @@ FastAPI backend for a Yandex Alice skill that uses the OpenAI Responses API, kee
 in Redis, stores analytics in PostgreSQL, and falls back to deferred replies when Yandex Alice's response deadline
 is too tight.
 
----
-
-## Why this project
-
-- Handles Yandex Alice's short webhook timeout without dropping the conversation.
-- Keeps dialog memory and idempotency in Redis instead of in-process state.
-- Persists turn history and deferred job outcomes to PostgreSQL.
-- Uses the official OpenAI Python SDK and the Responses API.
-- Stays easy to run locally with `uv`, Docker Compose, and a single worker process.
-
----
-
 ## What it does
 
 - Accepts `POST /webhooks/alice` requests from Yandex Alice.
@@ -31,8 +19,6 @@ is too tight.
 - Applies Redis-backed idempotency and rate limiting.
 - Emits structured JSON logs with request IDs.
 
----
-
 ## Components
 
 - **api**: FastAPI webhook app for Yandex Alice
@@ -40,8 +26,6 @@ is too tight.
 - **redis**: conversation memory, idempotency, rate limiting, and queue state
 - **postgres**: durable analytics storage
 - **openai**: LLM provider accessed through the Responses API
-
----
 
 ## Architecture
 
@@ -109,8 +93,6 @@ sequenceDiagram
     end
 ```
 
----
-
 ## Quick start
 
 1. Copy the environment template: `make ensure_env`
@@ -131,8 +113,6 @@ In another shell:
 uv run yandex-alice-openai-worker
 ```
 
----
-
 ## Common commands
 
 ```bash
@@ -145,8 +125,6 @@ make check
 make start
 make stop
 ```
-
----
 
 ## API
 
@@ -222,8 +200,6 @@ make stop
 }
 ```
 
----
-
 ## Configuration
 
 Main settings live in `.env`:
@@ -237,8 +213,6 @@ Main settings live in `.env`:
 - `DATABASE_URL`, `DATABASE_ECHO`
 - `WORKER_POLL_TIMEOUT_MS`, `WORKER_IDLE_SLEEP_SECONDS`, `WORKER_JOB_TIMEOUT_SECONDS`
 
----
-
 ## Security defaults
 
 - Optional webhook secret validation via `X-Alice-Secret`
@@ -247,8 +221,6 @@ Main settings live in `.env`:
 - Strict Pydantic request validation
 - Environment-based secrets only
 - Request correlation ID in every response header
-
----
 
 ## Container publishing
 

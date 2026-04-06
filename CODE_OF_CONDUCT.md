@@ -1,4 +1,4 @@
-# Code of Conduct - Yandex Alice OpenAI
+# Code of Conduct — Yandex Alice OpenAI
 
 ## Our Pledge
 
