@@ -48,8 +48,8 @@ flowchart LR
 ### Request lifecycle
 
 1. Yandex Alice sends a webhook payload to `POST /webhooks/alice`.
-2. FastAPI validates the payload, checks the optional webhook secret, reuses cached duplicate responses,
-   and attaches a request ID.
+2. FastAPI validates the payload, checks the optional webhook secret (`?secret=`) query parameter,
+   reuses cached duplicate responses, and attaches a request ID.
 3. The conversation service loads recent history from Redis and tries the OpenAI fast path with a hard timeout.
 4. If the fast path succeeds, the response is normalized for speech, clipped to Yandex Alice limits, stored in Redis
    history, and mirrored to PostgreSQL.
@@ -215,7 +215,7 @@ Main settings live in `.env`:
 
 ## Security defaults
 
-- Optional webhook secret validation via `X-Alice-Secret`
+- Optional webhook secret validation via `?secret=` query parameter
 - Redis-backed rate limiting
 - Idempotent duplicate request handling
 - Strict Pydantic request validation

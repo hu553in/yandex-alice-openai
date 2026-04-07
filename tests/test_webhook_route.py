@@ -139,7 +139,9 @@ def test_webhook_route_returns_alice_shape_for_invalid_webhook_secret(
     )
 
     response = client.post(
-        "/webhooks/alice", json=payload.model_dump(), headers={"x-alice-secret": "wrong-secret"}
+        "/webhooks/alice",
+        params={"secret": "wrong-secret"},  # nosec B105
+        json=payload.model_dump(),
     )
 
     assert response.status_code == HTTP_OK

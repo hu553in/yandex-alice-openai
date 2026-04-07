@@ -14,4 +14,3 @@ build/
 dist/
 *.py[cod]
 *.log
-secrets/

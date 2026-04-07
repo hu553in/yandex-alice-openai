@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from yandex_alice_openai.api.deps import get_container
 from yandex_alice_openai.application.bootstrap import Container
@@ -15,12 +15,14 @@ logger = get_logger()
 
 @router.post("/webhooks/alice", response_model=AliceWebhookResponse)
 async def alice_webhook(
-    payload: AliceWebhookRequest, request: Request, container: Container = Depends(get_container)
+    payload: AliceWebhookRequest,
+    request: Request,
+    container: Container = Depends(get_container),
+    secret: str | None = Query(default=None),
 ) -> AliceWebhookResponse:
     app_settings = container.settings.app()
-    secret = app_settings.webhook_secret
-    provided_secret = request.headers.get("x-alice-secret")
-    if secret is not None and provided_secret != secret.get_secret_value():
+    expected_secret = app_settings.webhook_secret
+    if expected_secret is not None and secret != expected_secret.get_secret_value():
         return AliceWebhookResponse(
             session=payload.session,
             response=render_voice_response("Запрос не прошел проверку. Попробуй позже."),
