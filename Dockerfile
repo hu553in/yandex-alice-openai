@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
 RUN useradd -m app
 
 COPY --from=deps --chown=app:app /app/.venv ./.venv
-COPY --chown=app:app pyproject.toml uv.lock ./
+COPY --chown=app:app pyproject.toml uv.lock README.md ./
 COPY --chown=app:app src ./src
 
 USER app
