@@ -3,7 +3,7 @@
 [![CI](https://github.com/hu553in/yandex-alice-openai/actions/workflows/ci.yml/badge.svg)](https://github.com/hu553in/yandex-alice-openai/actions/workflows/ci.yml)
 
 - [License](./LICENSE)
-- [How to contribute](./CONTRIBUTING.md)
+- [Contributing](./CONTRIBUTING.md)
 - [Code of conduct](./CODE_OF_CONDUCT.md)
 
 FastAPI backend for a Yandex Alice skill that uses the OpenAI Responses API, keeps short-term dialog state
