@@ -95,14 +95,14 @@ sequenceDiagram
 
 ## Quick start
 
-1. Copy the environment template: `make ensure_env`
+1. Copy the environment template: `make ensure-env`
 2. Set `OPENAI_API_KEY`
 3. Start the services: `make start`
 
 For local host-run development instead of Docker:
 
 ```bash
-make ensure_env install_deps
+make ensure-env install-deps
 docker compose up -d redis postgres
 uv run yandex-alice-openai-api
 ```
@@ -116,10 +116,10 @@ uv run yandex-alice-openai-worker
 ## Common commands
 
 ```bash
-make install_deps
-make sync_deps
+make install-deps
+make sync-deps
 make lint
-make check_types
+make check-types
 make test
 make check
 make start

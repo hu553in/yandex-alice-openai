@@ -1,7 +1,7 @@
 [project]
 name = "yandex-alice-openai"
 version = "0.1.0"
-description = "Yandex Alice skill backend with OpenAI Responses API, Redis memory, and deferred replies."
+description = "FastAPI backend for a Yandex Alice skill that uses the OpenAI Responses API, keeps short-term dialog state in Redis, stores analytics in PostgreSQL, and falls back to deferred replies when Yandex Alice's response deadline is too tight."
 readme = "README.md"
 requires-python = ">=3.14"
 license = "MIT"

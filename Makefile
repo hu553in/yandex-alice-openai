@@ -2,24 +2,24 @@ SHELL := /bin/bash
 .ONESHELL:
 .SHELLFLAGS := -euo pipefail -c
 
-.PHONY: ensure_env
-ensure_env:
+.PHONY: ensure-env
+ensure-env:
 	if [ ! -f .env ]; then cp .env.example .env; fi
 
-.PHONY: install_deps
-install_deps:
+.PHONY: install-deps
+install-deps:
 	uv sync --all-groups --frozen
 
-.PHONY: sync_deps
-sync_deps:
+.PHONY: sync-deps
+sync-deps:
 	uv sync --all-groups
 
-.PHONY: check_deps_updates
-check_deps_updates:
+.PHONY: check-deps-updates
+check-deps-updates:
 	uv tree --outdated --depth=1 | grep latest
 
-.PHONY: check_deps_vuln
-check_deps_vuln:
+.PHONY: check-deps-vuln
+check-deps-vuln:
 	uv run pysentry-rs .
 
 .PHONY: lint
@@ -31,8 +31,8 @@ lint:
 test:
 	uv run pytest
 
-.PHONY: check_types
-check_types:
+.PHONY: check-types
+check-types:
 	uv run ty check .
 
 .PHONY: check
@@ -42,11 +42,11 @@ check:
 # Project-specific
 
 .PHONY: start
-start: ensure_env
+start: ensure-env
 	docker compose up -d --build --wait --remove-orphans
 
 .PHONY: stop
-stop: ensure_env
+stop: ensure-env
 	docker compose down --remove-orphans
 
 .PHONY: restart
