@@ -50,7 +50,7 @@ services:
 
   redis:
     <<: *common
-    image: redis:8.2-alpine
+    image: redis:8.6-alpine
     ports:
       - "6379:6379"
     healthcheck:
