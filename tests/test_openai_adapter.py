@@ -4,8 +4,10 @@ import asyncio
 from datetime import UTC, datetime
 from time import monotonic
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
+from openai import AsyncOpenAI
 from pydantic import SecretStr
 
 from yandex_alice_openai.config import OpenAISettings
@@ -154,7 +156,7 @@ async def test_adapter_enforces_total_deadline_budget_across_attempts() -> None:
         system_prompt="test",
     )
     adapter = OpenAIResponsesAdapter(settings)
-    adapter._client = SimpleNamespace(responses=SlowResponses())
+    adapter._client = cast(AsyncOpenAI, SimpleNamespace(responses=SlowResponses()))
 
     started_at = monotonic()
     with pytest.raises(TimeoutError):
@@ -187,7 +189,7 @@ async def test_adapter_rejects_incomplete_openai_response() -> None:
         system_prompt="test",
     )
     adapter = OpenAIResponsesAdapter(settings)
-    adapter._client = SimpleNamespace(responses=IncompleteResponses())
+    adapter._client = cast(AsyncOpenAI, SimpleNamespace(responses=IncompleteResponses()))
 
     with pytest.raises(IncompleteResponseError):
         await adapter.generate_reply(
@@ -216,7 +218,7 @@ async def test_adapter_uses_requested_max_output_tokens() -> None:
         system_prompt="test",
     )
     adapter = OpenAIResponsesAdapter(settings)
-    adapter._client = SimpleNamespace(responses=Responses())
+    adapter._client = cast(AsyncOpenAI, SimpleNamespace(responses=Responses()))
 
     reply = await adapter.generate_reply(
         user_text="привет",

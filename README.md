@@ -117,7 +117,6 @@ uv run yandex-alice-openai-worker
 
 ```bash
 make install-deps
-make sync-deps
 make lint
 make check-types
 make test
