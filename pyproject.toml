@@ -26,12 +26,12 @@ dependencies = [
 [dependency-groups]
 dev = [
   "bandit>=1.9.4",
-  "prek>=0.3.10",
+  "prek>=0.3.11",
   "pysentry-rs>=0.4.5",
   "pytest>=9.0.2",
   "pytest-asyncio>=1.2.0",
   "pytest-cov>=7.1.0",
-  "ruff>=0.15.11",
+  "ruff>=0.15.12",
   "ty>=0.0.32",
   "types-redis>=4.6.0.20241004",
 ]
