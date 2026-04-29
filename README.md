@@ -57,42 +57,6 @@ flowchart LR
 6. The worker generates the deferred answer and marks it as ready in Redis.
 7. When the user says `продолжай` or `подробнее`, the webhook returns the ready follow-up immediately.
 
-### Sequence
-
-```mermaid
-sequenceDiagram
-    participant U as Yandex Alice user
-    participant A as Yandex Alice platform
-    participant API as FastAPI webhook
-    participant R as Redis
-    participant O as OpenAI
-    participant W as Worker
-    participant P as PostgreSQL
-
-    U->>A: Voice request
-    A->>API: POST /webhooks/alice
-    API->>R: idempotency + history + rate limit
-    API->>O: fast-path request
-    alt fast enough
-        O-->>API: short reply
-        API->>R: append dialog turns
-        API->>P: persist analytics
-        API-->>A: spoken response
-    else too slow
-        API->>R: pending reply + queue job
-        API-->>A: "Скажи: продолжай"
-        W->>R: consume job
-        W->>O: deferred request
-        O-->>W: full reply
-        W->>R: mark ready
-        W->>P: persist analytics
-        U->>A: "Продолжай"
-        A->>API: POST /webhooks/alice
-        API->>R: fetch ready reply
-        API-->>A: completed answer
-    end
-```
-
 ## Quick start
 
 1. Copy the environment template: `make ensure-env`
@@ -132,72 +96,8 @@ make stop
 - `POST /webhooks/alice`
 - `GET /healthz`
 
-### Example webhook request
-
-```json
-{
-  "meta": {
-    "locale": "ru-RU",
-    "timezone": "Europe/Moscow",
-    "client_id": "ru.yandex.searchplugin/7.16"
-  },
-  "session": {
-    "message_id": 1,
-    "session_id": "b7f31b0c-7b14-49cf-8fa6-e83f36316ac6",
-    "user_id": "8E6B9A991AA6C4B4C1C6D0F086",
-    "new": false,
-    "application": {
-      "application_id": "yandex-alice-openai-demo-skill"
-    },
-    "user": {
-      "user_id": "8E6B9A991AA6C4B4C1C6D0F086"
-    }
-  },
-  "request": {
-    "command": "кто написал Мастера и Маргариту",
-    "original_utterance": "кто написал Мастера и Маргариту",
-    "type": "SimpleUtterance"
-  },
-  "state": {
-    "session": {},
-    "user": {},
-    "application": {}
-  },
-  "version": "1.0",
-  "application": {
-    "application_id": "yandex-alice-openai-demo-skill"
-  },
-  "device": {
-    "device_id": "a1b2c3d4-e5f6-7081-92ab-cd34ef567890"
-  }
-}
-```
-
-### Example webhook response
-
-```json
-{
-  "version": "1.0",
-  "session": {
-    "message_id": 1,
-    "session_id": "b7f31b0c-7b14-49cf-8fa6-e83f36316ac6",
-    "user_id": "8E6B9A991AA6C4B4C1C6D0F086",
-    "new": false,
-    "application": {
-      "application_id": "yandex-alice-openai-demo-skill"
-    },
-    "user": {
-      "user_id": "8E6B9A991AA6C4B4C1C6D0F086"
-    }
-  },
-  "response": {
-    "text": "Роман «Мастер и Маргарита» написал Михаил Булгаков.",
-    "tts": "Роман «Мастер и Маргарита» написал Михаил Булгаков.",
-    "end_session": false,
-    "buttons": []
-  }
-}
-```
+See [Yandex Alice protocol](https://yandex.ru/dev/dialogs/alice/doc/ru/protocol.html) for the
+request/response format.
 
 ## Configuration
 
