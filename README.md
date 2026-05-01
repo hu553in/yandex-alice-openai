@@ -6,9 +6,8 @@
 - [Contributing](./CONTRIBUTING.md)
 - [Code of conduct](./CODE_OF_CONDUCT.md)
 
-FastAPI backend for a Yandex Alice skill that uses the OpenAI Responses API, keeps short-term dialog state
-in Redis, stores analytics in PostgreSQL, and falls back to deferred replies when Yandex Alice's response deadline
-is too tight.
+FastAPI backend for a Yandex Alice skill with OpenAI Responses API, Redis dialog state, PostgreSQL analytics,
+and deferred replies.
 
 ## What it does
 
@@ -96,12 +95,12 @@ make stop
 - `POST /webhooks/alice`
 - `GET /healthz`
 
-See [Yandex Alice protocol](https://yandex.ru/dev/dialogs/alice/doc/ru/protocol.html) for the
-request/response format.
+See [Yandex Alice protocol](https://yandex.ru/dev/dialogs/alice/doc/ru/archive/protocol-surface) for the
+request and response format.
 
 ## Configuration
 
-Main settings live in `.env`:
+Main settings are defined in `.env`:
 
 - `APP_ENV`, `APP_HOST`, `APP_PORT`, `APP_LOG_LEVEL`
 - `APP_RATE_LIMIT_PER_MINUTE`, `APP_WEBHOOK_SECRET`
